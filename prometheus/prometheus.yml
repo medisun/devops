@@ -25,14 +25,14 @@ scrape_configs:
     static_configs:
       - targets:
         - node_exporter:9100 
-        # - 147.182.199.2:9900
+        - 147.182.199.2:9900
 
   - job_name: 'cadvisor'
     scrape_interval: 5s
     static_configs:
       - targets:
         - cadvisor:8080
-        # - 147.182.199.2:9901
+        - 147.182.199.2:9901
 
 
 # remote_write:

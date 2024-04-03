@@ -1,0 +1,144 @@
+version: "3.8"
+
+x-log: &logs-std
+  logging:
+    driver: "json-file"
+    options:
+      max-size: "500m"
+      max-file: "1"
+
+x-logs-off: &logs-off
+  logging: 
+    driver: "none"
+
+services:
+  grafana:
+    image: grafana/grafana:10.1.9
+    restart: unless-stopped
+    ports:
+      - "8000:3000"
+    expose:
+      - 3000
+    env_file:
+      - ./grafana/config.env
+    volumes:
+      # - ./grafana:/var/lib/grafana:rw
+      - grafana_data:/var/lib/grafana
+      - ./grafana/datasources:/etc/grafana/provisioning/datasources
+      - ./grafana/dashboard.yml:/etc/grafana/provisioning/dashboards/main.yml
+      - ./grafana/dashboards:/var/lib/grafana/dashboards
+    depends_on:
+      - prometheus
+      # - loki
+    <<: *logs-std
+
+  prometheus:
+    image: prom/prometheus:v2.51.1
+    restart: unless-stopped
+    depends_on:
+      - alertmanager
+    ports:
+      - 9090:9090
+    expose:
+      - 9090
+    volumes:
+      # - ./prometheus.yml:/etc/prometheus/prometheus.yml
+      - ./prometheus/:/etc/prometheus/
+      - prometheus_data:/prometheus
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.path=/prometheus
+      - --web.console.libraries=/etc/prometheus/console_libraries
+      - --web.console.templates=/etc/prometheus/consoles
+      - --web.enable-lifecycle
+      - --web.external-url=http://localhost:9090
+    <<: *logs-std
+
+  # loki:
+  #   image: grafana/loki:2.8.11
+  #   restart: unless-stopped
+  #   ports:
+  #     - "3100:3100"
+  #   command: -config.file=/etc/loki/config.yaml
+  #   volumes:
+  #     - ./loki.yml/:/etc/loki/config.yaml
+  #     - loki_data:/loki/
+  #   <<: *logs-std
+
+  alertmanager:
+    image: prom/alertmanager:v0.27.0
+    restart: unless-stopped
+    ports:
+      - 9093:9093
+    expose:
+      - 9093
+    volumes:
+      - ./alertmanager/:/etc/alertmanager/
+    command:
+      - '--config.file=/etc/alertmanager/config.yml'
+      - '--storage.path=/alertmanager'
+
+  ###############################
+
+  # Client service
+  node_exporter:
+    image: prom/node-exporter:v1.7.0
+    hostname: real-salary-node-exporter
+    restart: unless-stopped
+    ports:
+      - 9100:9100
+    expose:
+      - 9100
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
+    command:
+      - '--path.procfs=/host/proc'
+      - '--path.rootfs=/rootfs'
+      - '--path.sysfs=/host/sys'
+      - '--collector.filesystem.ignored-mount-points=^/(sys|proc|dev|host|etc)($$|/)'
+    <<: *logs-off
+
+  # Client service
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor:v0.49.1
+    hostname: real-salary-cadvisor
+    restart: unless-stopped
+    ports:
+      - 9901:8080
+    expose:
+      - 8080
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:ro
+      - /sys:/sys:ro
+      - /var/lib/docker/:/var/lib/docker:ro
+      - /dev/disk/:/dev/disk:ro
+    <<: *logs-off
+
+  # # Client service
+  # promtail:
+  #   image: grafana/promtail:1.5.0
+  #   restart: unless-stopped
+  #   # hostname: staging-promtail
+  #   expose:
+  #     - 9080
+  #   ports:
+  #     - "9080:9080"
+  #   volumes:
+  #     - ./promtail.yml:/etc/promtail/docker-config.yml
+  #     - /var/lib/docker/containers:/var/lib/docker/containers:ro
+  #     - /home/totem/projects/market/src_clean/logs/nginx/:/var/log
+  #     - promtail_data:/var/lib/promtail/
+  #   command: -config.file=/etc/promtail/docker-config.yml
+  #   <<: *logs-off
+
+networks:
+  default:
+
+volumes:
+  grafana_data:
+  prometheus_data:
+  # loki_data:
+  # promtail_data:

@@ -1,0 +1,54 @@
+version: "3.8"
+
+x-log: &logs-std
+  logging:
+    driver: "json-file"
+    options:
+      max-size: "500m"
+      max-file: "1"
+
+x-logs-off: &logs-off
+  logging: 
+    driver: "none"
+
+services:
+  # Client service
+  node_exporter:
+    image: prom/node-exporter:v1.7.0
+    hostname: real-salary-node-exporter
+    restart: unless-stopped
+    ports:
+      - 9900:9100
+    expose:
+      - 9100
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
+    command:
+      - '--path.procfs=/host/proc'
+      - '--path.rootfs=/rootfs'
+      - '--path.sysfs=/host/sys'
+      - '--collector.filesystem.ignored-mount-points=^/(sys|proc|dev|host|etc)($$|/)'
+    <<: *logs-off
+
+  # Client service
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor:v0.49.1
+    hostname: real-salary-cadvisor
+    restart: unless-stopped
+    ports:
+      - 9901:8080
+    expose:
+      - 8080
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:ro
+      - /sys:/sys:ro
+      - /var/lib/docker/:/var/lib/docker:ro
+      - /dev/disk/:/dev/disk:ro
+    <<: *logs-off
+
+networks:
+  default:
+

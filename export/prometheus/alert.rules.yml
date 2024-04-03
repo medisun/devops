@@ -1,0 +1,97 @@
+groups:
+- name: Basic
+  rules:
+
+  # Alert for any instance that is unreachable for >2 minutes.
+  - alert: service_down
+    expr: up{job="node_exporter"} == 0
+    for: 2m
+    labels:
+      severity: critical
+    annotations:
+      summary: "{{ $labels.instance }} down"
+      description: "{{ $labels.instance }} of job {{ $labels.job }} has been down for more than 2 minutes."
+
+  - alert: high_load
+    expr: node_load1 > 4
+    for: 2m
+    labels:
+      severity: warning
+    annotations:
+      summary: "{{ $labels.instance }} under high load"
+      description: "{{ $labels.instance }} of job {{ $labels.job }} is under high load."
+
+  - alert: high_cpu
+    expr: 100 * (1 - avg(rate(node_cpu_seconds_total{mode="idle", job="node_exporter"}[2m]))) > 1
+    for: 2m
+    labels:
+      severity: warning
+    annotations:
+      summary: "{{ $labels.instance }} under high load"
+      description: "{{ $labels.instance }} of job {{ $labels.job }} is under high load."
+
+  - alert: high_memory
+    expr: (((node_memory_MemTotal_bytes{instance="$node", job="node_exporter"} - node_memory_MemFree_bytes{instance="$node", job="node_exporter"}) / node_memory_MemTotal_bytes{instance="$node", job="node_exporter"}) * 100) > 80
+    for: 2m
+    labels:
+      severity: warning
+    annotations:
+      summary: "{{ $labels.instance }} is low on memory"
+      description: "{{ $labels.instance }} memory > 80 for 2 mins."
+
+  - alert: full_disk
+    expr: (100.0 - 100 * (node_filesystem_avail{job="node_exporter"} / node_filesystem_size{job="node_exporter"})) > 80
+    for: 2m
+    labels:
+      severity: warning
+    annotations:
+      summary: "{{ $labels.instance }} disk usage above 80"
+      description: "{{ $labels.instance }} disk usage above 80"
+
+#=============nodeCntextSwitches ========================================
+  - alert: nodeCntextSwitches
+    expr: irate(node_context_switches{job="node_explorer"}[5m]) > 100
+    for: 5m
+    labels:
+      severity: warning
+    annotations:
+      summary: nodeCntextSwitches
+#=============Disk Utilization per Device ========================================
+  - alert: DiskUtilizationPerDevice
+    expr: irate(node_disk_io_time_ms{job="node_explorer"}[5m])/10 > 0.2
+    for: 5m
+    labels:
+      severity: warning
+    annotations:
+      summary: DiskUtilizationPerDevice
+#============Disk IOs per Device ========================================
+  - alert: DiskIOsPerDeviceRead
+    expr: irate(node_disk_reads_completed{job="node_explorer"}[5m]) >10
+    for: 5m
+    labels:
+      severity: warning
+    annotations:
+      summary: DiskIOsPerDevice
+
+  - alert: DiskIOsPerDeviceWrite
+    expr: irate(node_disk_writes_completed{job="node_explorer"}[5m]) > 10
+    for: 5m
+    labels:
+      severity: warning
+    annotations:
+      summary: DiskIOsPerDevice
+#===========Disk Throughput per Device========================================
+  - alert: DiskThroughputPerDeviceReads
+    expr: irate(node_disk_sectors_read{job="node_explorer"}[5m]) * 512 >10000000
+    for: 5m
+    labels:
+      severity: warning
+    annotations:
+      summary: DiskIOsPerDevice
+  - alert: DiskThroughputPerDeviceWrites
+    expr: irate(node_disk_sectors_written{job="node_explorer"}[5m]) * 512 > 10000000
+    for: 5m
+    labels:
+      severity: warning
+    annotations:
+      summary: DiskIOsPerDevice

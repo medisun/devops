@@ -22,7 +22,7 @@ groups:
       description: "{{ $labels.instance }} of job {{ $labels.job }} is under high load."
 
   - alert: high_cpu
-    expr: 100 * (1 - avg(rate(node_cpu_seconds_total{mode="idle", job="node_exporter"}[2m]))) > 1
+    expr: 100 * (1 - avg(rate(node_cpu_seconds_total{mode="idle", job="node_exporter"}[2m]))) > 90
     for: 2m
     labels:
       severity: warning
